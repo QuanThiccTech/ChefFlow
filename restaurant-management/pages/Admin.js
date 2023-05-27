@@ -1,49 +1,47 @@
 import { useEffect, useState } from 'react';
 
-export default function Home() {
+export default function Admin() {
   const [menu, setMenu] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [itemName, setItemName] = useState('');
   const [itemPrice, setItemPrice] = useState('');
   const [itemImage, setItemImage] = useState('');
 
   useEffect(() => {
     fetchMenu();
-    fetchOrders();
   }, []);
 
   async function fetchMenu() {
-    const response = await fetch('/api/menu');
-    const menuData = await response.json();
-    setMenu(menuData);
+    try {
+      const response = await fetch('/api/menu');
+      const menuData = await response.json();
+      setMenu(menuData);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+    }
   }
 
-  async function fetchOrders() {
-    const response = await fetch('/api/orders');
-    const ordersData = await response.json();
-    setOrders(ordersData);
-  }
-
-  async function handleAddItem(event) {
-    event.preventDefault();
-
-    const response = await fetch('/api/menu', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+  async function handleAddItem() {
+    try {
+      const newItem = {
         name: itemName,
-        price: parseFloat(itemPrice),
-        image: itemImage,
-      }),
-    });
+        price: itemPrice,
+        image: itemImage
+      };
 
-    if (response.ok) {
+      await fetch('/api/menu', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newItem)
+      });
+
       setItemName('');
       setItemPrice('');
       setItemImage('');
       fetchMenu();
+    } catch (error) {
+      console.error('Error adding item:', error);
     }
   }
 
@@ -57,87 +55,57 @@ export default function Home() {
     }
   }
 
-  async function handleOrderPlaced(order) {
-    const response = await fetch('/api/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(order),
-    });
-
-    if (response.ok) {
-      fetchOrders();
-    }
-  }
-
   return (
     <div className="container">
       <div className="section">
-        <h2>Menu</h2>
-        <ul>
+        <h2 className="section-title">Menu</h2>
+        <div className="menu">
           {menu.map((item) => (
-            <li key={item.id} className="menu-item">
+            <div key={item.id} className="menu-item">
+              {item.image && <img src={item.image} alt={item.name} />}
               <div className="item-details">
                 <div className="item-name">{item.name}</div>
-                <div className="item-price">
-                  {item.price
+                <div className="item-price">Price: {item.price
                     ? parseFloat(item.price).toLocaleString('vi-VN', {
                         style: 'currency',
                         currency: 'VND',
                       })
-                    : 'N/A'}
-                </div>
-              </div>
-              {item.image && <img src={item.image} alt={item.name} />}
-              <button
+                    : 'N/A'}</div>
+                <button
                 className="delete-button"
                 onClick={() => handleDeleteItem(item.id)}
               >
                 Delete
               </button>
-            </li>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
       <div className="section">
-        <h2>Orders</h2>
-        <ul>
-          {orders.map((order) => (
-            <li key={order.id}>
-              Order #{order.id}: {order.items.length} items
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="section">
-        <h2>Item Adder</h2>
-        <form onSubmit={handleAddItem} className="item-adder-form">
+        <h2 className="section-title">Add Item</h2>
+        <div className="item-adder">
           <input
             type="text"
-            placeholder="Item Name"
+            placeholder="Name"
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
           />
           <input
-            type="number"
-            step="0.01"
-            placeholder="Item Price"
+            type="text"
+            placeholder="Price"
             value={itemPrice}
             onChange={(e) => setItemPrice(e.target.value)}
           />
           <input
             type="text"
-            placeholder="Item Image URL"
+            placeholder="Image URL"
             value={itemImage}
             onChange={(e) => setItemImage(e.target.value)}
           />
-          <button type="submit" className="add-item-button">
-            Add Item
-          </button>
-        </form>
+          <button onClick={handleAddItem}>Add Item</button>
+        </div>
       </div>
 
       <style jsx>{`
@@ -163,6 +131,12 @@ export default function Home() {
           padding: 5px 10px;
           border-radius: 8px;
           display: inline-block;
+        }
+
+        .menu-list {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
         }
 
         .menu-item {
@@ -207,59 +181,27 @@ export default function Home() {
           transform: scale(1.05);
         }
 
-        .menu-item .item-details {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
+        ul {
+          list-style-type: none;
+          padding: 0;
+        }
+
+        li {
           margin-bottom: 10px;
         }
 
-        .menu-item .item-name {
-          font-weight: bold;
-        }
-
-        .menu-item .item-price {
-          font-weight: bold;
-        }
-
-        .menu-item .item-image {
-          width: 100px;
-          height: 100px;
-          object-fit: cover;
-          border-radius: 8px;
-        }
-
-        .delete-button {
+        button {
           background-color: #ff7f11;
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          padding: 5px 10px;
+          padding: 8px 16px;
           cursor: pointer;
           transition: background-color 0.3s ease;
+          margin-left: 10px;
         }
 
-        .delete-button:hover {
-          background-color: #ff5811;
-        }
-
-        .item-adder-form {
-          display: flex;
-          gap: 10px;
-        }
-
-        .add-item-button {
-          background-color: #ff7f11;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 20px;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-        }
-
-        .add-item-button:hover {
+        button:hover {
           background-color: #ff5811;
         }
       `}</style>
